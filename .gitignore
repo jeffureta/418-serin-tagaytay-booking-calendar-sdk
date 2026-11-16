@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+*.log
+data/*.db
+data/condo_ops.db
+dist/
+__pycache__/
+*.pyc

@@ -1,0 +1,28 @@
+{
+  "name": "418-serin-tagaytay-booking-calendar-cli",
+  "version": "1.0.0",
+  "description": "Cost-free Booking Calendar CLI and Dual-Language SDK for Unit 418 Serin East Tagaytay",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "condo-book": "./bin/condo-book.js"
+  },
+  "scripts": {
+    "build": "node scripts/build-universal.js",
+    "test": "node --test tests/unit/*.test.js tests/cli/*.test.js",
+    "test:python": "PYTHONPATH=./python python3 -m unittest discover -s tests/python -p 'test_*.py' -q"
+  },
+  "keywords": [
+    "tagaytay",
+    "condo",
+    "booking",
+    "google-calendar",
+    "cli",
+    "sdk"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^12.1.0"
+  }
+}
