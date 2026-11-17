@@ -1,6 +1,6 @@
-# 418 Serin Tagaytay Booking Calendar CLI & Dual-Language SDK
+# 418 Serin Tagaytay Booking Calendar SDK & CLI
 
-A **100% Cost-Free, Zero-Cloud-Dependency** Booking Calendar CLI and Dual-Language SDK (ESM JavaScript / TypeScript + Python 3) built specifically for **Unit 418 Serin East Tagaytay**.
+A **100% Cost-Free, Zero-Cloud-Dependency** Booking Calendar Dual-Language SDK (ESM JavaScript / TypeScript + Python 3) and `condo-book` CLI built specifically for **Unit 418 Serin East Tagaytay**.
 
 Directly connected to the live Google Calendar:
 `https://calendar.google.com/calendar/embed?src=5e250418f97d2008bff93cc10a638b2aabe981af2d5e271b058eb8835dde2ae2%40group.calendar.google.com&ctz=Europe%2FLondon`
@@ -21,7 +21,7 @@ Directly connected to the live Google Calendar:
 
 ```bash
 # Clone and install dependencies
-git clone https://github.com/your-org/418-serin-tagaytay-booking-calendar-sdk.git
+git clone https://github.com/jeffureta/418-serin-tagaytay-booking-calendar-sdk.git
 cd 418-serin-tagaytay-booking-calendar-sdk
 npm install
 npm link # gives you global 'condo-book' CLI command
@@ -79,7 +79,7 @@ condo-book expense report --month 2026-11 --json
 
 ### ESM JavaScript SDK
 ```javascript
-import { CondoBookingClient } from '418-serin-tagaytay-booking-calendar-cli';
+import { CondoBookingClient } from '418-serin-tagaytay-booking-calendar-sdk';
 
 const client = new CondoBookingClient();
 
