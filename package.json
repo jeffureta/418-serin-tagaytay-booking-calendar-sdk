@@ -1,7 +1,7 @@
 {
-  "name": "418-serin-tagaytay-booking-calendar-cli",
+  "name": "418-serin-tagaytay-booking-calendar-sdk",
   "version": "1.0.0",
-  "description": "Cost-free Booking Calendar CLI and Dual-Language SDK for Unit 418 Serin East Tagaytay",
+  "description": "Cost-free Booking Calendar Dual-Language SDK and condo-book CLI for Unit 418 Serin East Tagaytay",
   "type": "module",
   "main": "src/index.js",
   "bin": {

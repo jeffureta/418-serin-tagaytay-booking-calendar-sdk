@@ -1,6 +1,6 @@
 # Ubiquitous Language: Unit 418 Serin East Tagaytay Booking & Operations
 
-This document establishes the official Domain-Driven Design (DDD) ubiquitous language for the **418-serin-tagaytay-booking-calendar-cli** application suite. All code, CLI commands, database schemas, test cases, and documentation must adhere to these terms.
+This document establishes the official Domain-Driven Design (DDD) ubiquitous language for the **418-serin-tagaytay-booking-calendar-sdk** (and `condo-book` CLI) application suite. All code, CLI commands, database schemas, test cases, and documentation must adhere to these terms.
 
 ---
 

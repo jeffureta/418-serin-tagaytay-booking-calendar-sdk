@@ -1,5 +1,5 @@
 /**
- * 418-serin-tagaytay-booking-calendar-cli Core SDK Client
+ * 418-serin-tagaytay-booking-calendar-sdk Core SDK Client
  * Exports CondoBookingClient adhering to the standard { success, status, data, error, meta } envelope.
  */
 

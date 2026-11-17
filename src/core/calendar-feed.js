@@ -128,7 +128,7 @@ export function parseICalContent(icsText, options = {}) {
 export async function fetchAndParseCalendar(url = DEFAULT_ICAL_URL, options = {}) {
   const response = await fetch(url, {
     headers: {
-      'User-Agent': '418-serin-tagaytay-booking-calendar-cli/1.0'
+      'User-Agent': '418-serin-tagaytay-booking-calendar-sdk/1.0'
     }
   });
   if (!response.ok) {
