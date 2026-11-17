@@ -24,7 +24,8 @@ export class CondoBookingCalendar extends HTMLElement {
       guests: 2,
       coveredParking: false,
       channel: 'direct',
-      baseRate: 3340,
+      baseRate: 3500,
+      customRates: {}, // Map of dateStr -> rate
       quote: null,
       busyDates: new Set(['2026-12-24', '2026-12-25', '2026-12-31', '2027-01-01'])
     };
@@ -53,19 +54,49 @@ export class CondoBookingCalendar extends HTMLElement {
     this.attachEventListeners();
   }
 
+  getDateRate(dateStr) {
+    if (this.state.customRates && this.state.customRates[dateStr]) {
+      return this.state.customRates[dateStr];
+    }
+    const monthDay = dateStr.slice(5);
+    // Peak dates (Christmas, New Year, Holy Week, National Holidays)
+    const peakDates = new Set(['12-24', '12-25', '12-30', '12-31', '01-01', '01-02']);
+    if (peakDates.has(monthDay)) {
+      return 7000;
+    }
+    const d = new Date(dateStr + 'T00:00:00Z');
+    const day = d.getUTCDay();
+    // Friday (5) and Saturday (6) nights
+    if (day === 5 || day === 6) {
+      return 5000;
+    }
+    return this.state.baseRate || 3500;
+  }
+
   recalculateQuote() {
     if (!this.state.checkInDate || !this.state.checkOutDate) {
       this.state.quote = null;
       return;
     }
 
-    const d1 = new Date(this.state.checkInDate);
-    const d2 = new Date(this.state.checkOutDate);
+    const d1 = new Date(this.state.checkInDate + 'T00:00:00Z');
+    const d2 = new Date(this.state.checkOutDate + 'T00:00:00Z');
     const diffTime = d2.getTime() - d1.getTime();
     const nights = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)));
 
-    const rate = this.state.baseRate;
-    const staySubtotal = nights * rate;
+    let staySubtotal = 0;
+    const nightlyBreakdown = [];
+    const cur = new Date(d1);
+
+    for (let i = 0; i < nights; i++) {
+      const curDateStr = cur.toISOString().slice(0, 10);
+      const nightlyRate = this.getDateRate(curDateStr);
+      staySubtotal += nightlyRate;
+      nightlyBreakdown.push({ date: curDateStr, rate: nightlyRate });
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+
+    const averageRate = Math.round(staySubtotal / nights);
     const parkingFee = this.state.coveredParking ? nights * 350 : 0;
     const extraGuests = Math.max(0, this.state.guests - 4);
     const extraGuestFee = extraGuests * 400 * nights;
@@ -74,8 +105,9 @@ export class CondoBookingCalendar extends HTMLElement {
 
     this.state.quote = {
       nights,
-      rate,
+      rate: averageRate,
       staySubtotal,
+      nightlyBreakdown,
       parkingFee,
       extraGuestFee,
       deposit,
