@@ -10,10 +10,14 @@
  *   and sticky bottom quote bar with iOS safe-area support.
  */
 
-export class CondoBookingCalendar extends HTMLElement {
+const BaseElement = typeof HTMLElement !== 'undefined' ? HTMLElement : class MockHTMLElement {};
+
+export class CondoBookingCalendar extends BaseElement {
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    if (typeof this.attachShadow === 'function') {
+      this.attachShadow({ mode: 'open' });
+    }
 
     const now = new Date();
     this.state = {
@@ -35,7 +39,7 @@ export class CondoBookingCalendar extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ['channel', 'guests', 'parking'];
+    return ['channel', 'guests', 'parking', 'rates-url', 'custom-rates'];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -43,27 +47,75 @@ export class CondoBookingCalendar extends HTMLElement {
       if (name === 'channel') this.state.channel = newValue || 'direct';
       if (name === 'guests') this.state.guests = parseInt(newValue, 10) || 2;
       if (name === 'parking') this.state.coveredParking = newValue === 'true';
+      if (name === 'custom-rates') {
+        try {
+          this.state.customRates = JSON.parse(newValue);
+        } catch (e) {
+          console.warn('[condo-booking-calendar] Failed to parse custom-rates JSON', e);
+        }
+      }
+      if (name === 'rates-url' && newValue) {
+        this.fetchRates(newValue);
+      }
       this.recalculateQuote();
       this.render();
     }
   }
 
+  get customRates() {
+    return this.state.customRates;
+  }
+
+  set customRates(val) {
+    this.state.customRates = typeof val === 'object' && val !== null ? val : {};
+    this.recalculateQuote();
+    this.render();
+  }
+
+  async fetchRates(url) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const json = await res.json();
+        const data = json.data || json;
+        if (typeof data === 'object' && data !== null) {
+          this.state.customRates = { ...this.state.customRates, ...data };
+          this.recalculateQuote();
+          this.render();
+        }
+      }
+    } catch (err) {
+      console.warn('[condo-booking-calendar] Failed to fetch rates from', url, err);
+    }
+  }
+
   connectedCallback() {
+    if (this.getAttribute('rates-url')) {
+      this.fetchRates(this.getAttribute('rates-url'));
+    }
     this.recalculateQuote();
     this.render();
     this.attachEventListeners();
   }
 
   getDateRate(dateStr) {
+    const monthDay = dateStr.slice(5);
+    const peakDates = new Set([
+      '01-01', '01-02', '04-09', '05-01', '06-12', '08-21', '08-31',
+      '11-01', '11-02', '11-30', '12-08', '12-24', '12-25', '12-30', '12-31'
+    ]);
+    const isHoliday = peakDates.has(monthDay);
+
+    if (isHoliday) {
+      // 1.65x Holiday Multiplier baked seamlessly into base rate
+      const baseline = (this.state.customRates && this.state.customRates[dateStr]) || this.state.baseRate || 3500;
+      return Math.round(baseline * 1.65);
+    }
+
     if (this.state.customRates && this.state.customRates[dateStr]) {
       return this.state.customRates[dateStr];
     }
-    const monthDay = dateStr.slice(5);
-    // Peak dates (Christmas, New Year, Holy Week, National Holidays)
-    const peakDates = new Set(['12-24', '12-25', '12-30', '12-31', '01-01', '01-02']);
-    if (peakDates.has(monthDay)) {
-      return 7000;
-    }
+
     const d = new Date(dateStr + 'T00:00:00Z');
     const day = d.getUTCDay();
     // Friday (5) and Saturday (6) nights
@@ -252,6 +304,8 @@ export class CondoBookingCalendar extends HTMLElement {
     const month2Html = this.renderMonth(nextYearIdx, nextMonthIdx);
 
     const quote = this.state.quote;
+
+    if (!this.shadowRoot) return;
 
     this.shadowRoot.innerHTML = `
       <style>

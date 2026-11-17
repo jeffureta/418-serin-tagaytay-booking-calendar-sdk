@@ -27,6 +27,7 @@ export class CondoBookingApi {
     this.sheetId = options.sheetId || '14n99htLUR-H09Vz9_tOmDUc9_8Zt9VZopJM5KAqPUgw';
     this.calendarUrl = options.calendarUrl || DEFAULT_ICAL_URL;
     this.dbPath = options.dbPath || 'data/condo_ops.db';
+    this.customRates = options.customRates || {};
 
     // Lazy initialization of store when running in Node.js
     this.store = null;
@@ -83,12 +84,20 @@ export class CondoBookingApi {
     }
   }
 
+  setCustomRates(ratesMap) {
+    this.customRates = typeof ratesMap === 'object' && ratesMap !== null ? ratesMap : {};
+  }
+
   /**
    * 2. Pure Fair Market Value (₱2,800-₱8,500), ₱350/night parking add-on, AirCover deposit waiver
    */
   async calculateQuote(options) {
     try {
-      const quote = calculateStayQuote(options);
+      const mergedOptions = {
+        customRates: this.customRates,
+        ...options
+      };
+      const quote = calculateStayQuote(mergedOptions);
       return this._envelope(true, 'OK', quote);
     } catch (err) {
       return this._envelope(false, 'QUOTE_ERROR', null, { message: err.message });
