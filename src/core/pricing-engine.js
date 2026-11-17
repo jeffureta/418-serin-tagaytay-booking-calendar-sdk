@@ -11,19 +11,40 @@ export const EXTRA_GUEST_FEE_PHP = 500;
 export const CLEANING_FEE_PHP = 800;
 
 // Benchmark Tagaytay base rates
-export const BASE_WEEKDAY_RATE_PHP = 3200; // Mon-Thu
-export const BASE_WEEKEND_RATE_PHP = 4000; // Fri-Sun
-export const UNDERCUT_DISCOUNT_PHP = 500;  // Direct discount
+export const BASE_WEEKDAY_RATE_PHP = 3500; // Standard base rate
+export const BASE_WEEKEND_RATE_PHP = 5000; // Fri-Sat weekend rate
+export const UNDERCUT_DISCOUNT_PHP = 0;    // Seamless integrated rate
+
+export const HOLIDAY_MULTIPLIER = 1.65;
+
+export const TAGAYTAY_PEAK_DATES = new Set([
+  '01-01', // New Year's Day
+  '01-02', // New Year Holiday
+  '04-09', // Araw ng Kagitingan
+  '05-01', // Labor Day
+  '06-12', // Independence Day
+  '08-21', // Ninoy Aquino Day
+  '08-31', // National Heroes Day
+  '11-01', // All Saints' Day
+  '11-02', // All Souls' Day
+  '11-30', // Bonifacio Day
+  '12-08', // Feast of the Immaculate Conception
+  '12-24', // Christmas Eve
+  '12-25', // Christmas Day
+  '12-30', // Rizal Day
+  '12-31', // New Year's Eve
+]);
 
 /**
- * Calculates a stay quote.
+ * Calculates a stay quote with seamless dynamic pricing and integrated 1.65x holiday multiplier.
  */
 export function calculateStayQuote({
   checkIn,
   checkOut,
   guests = 2,
   coveredParking = false,
-  channel = 'direct'
+  channel = 'direct',
+  customRates = {}
 }) {
   const inDate = new Date(`${checkIn}T00:00:00Z`);
   const outDate = new Date(`${checkOut}T00:00:00Z`);
@@ -44,17 +65,30 @@ export function calculateStayQuote({
 
   for (let i = 0; i < nights; i++) {
     const curDate = new Date(inDate.getTime() + i * 24 * 60 * 60 * 1000);
+    const dateStr = curDate.toISOString().slice(0, 10);
+    const monthDay = dateStr.slice(5);
     const dayOfWeek = curDate.getUTCDay(); // 0 is Sunday, 5 is Friday, 6 is Saturday
-    const isWeekend = (dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0);
-    const benchmark = isWeekend ? BASE_WEEKEND_RATE_PHP : BASE_WEEKDAY_RATE_PHP;
-    const nightlyPrice = Math.max(2000, benchmark - UNDERCUT_DISCOUNT_PHP);
+    const isWeekend = (dayOfWeek === 5 || dayOfWeek === 6);
+
+    let nightlyPrice;
+    const isHoliday = TAGAYTAY_PEAK_DATES.has(monthDay);
+
+    if (isHoliday) {
+      // 1.65x Holiday Multiplier baked seamlessly into nightly price
+      const baseline = (customRates && customRates[dateStr]) || BASE_WEEKDAY_RATE_PHP;
+      nightlyPrice = Math.round(baseline * HOLIDAY_MULTIPLIER);
+    } else if (customRates && customRates[dateStr]) {
+      nightlyPrice = customRates[dateStr];
+    } else if (isWeekend) {
+      nightlyPrice = BASE_WEEKEND_RATE_PHP;
+    } else {
+      nightlyPrice = BASE_WEEKDAY_RATE_PHP;
+    }
 
     baseStayTotal += nightlyPrice;
     nightlyBreakdown.push({
-      date: curDate.toISOString().slice(0, 10),
+      date: dateStr,
       isWeekend,
-      benchmark,
-      undercut: UNDERCUT_DISCOUNT_PHP,
       rate: nightlyPrice
     });
   }
