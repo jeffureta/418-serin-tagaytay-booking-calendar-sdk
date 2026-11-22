@@ -3,6 +3,7 @@
 /**
  * condo-book CLI Binary
  * Command-line interface for Unit 418 Serin East Tagaytay Booking & Calendar Operations.
+ * Full CRUD on Google Calendar & SQLite Operations Ledger.
  */
 
 import { Command } from 'commander';
@@ -71,22 +72,26 @@ program
     handleOutput(res, opts.json);
   });
 
-// 3. Reserve
+// 3. Reserve (CRUD - Create)
 program
   .command('reserve')
-  .description('Create a new reservation in the operations ledger')
+  .description('Create a new reservation on Google Calendar & operations ledger')
   .requiredOption('--name <guestName>', 'Primary guest name')
   .requiredOption('--checkin <date>', 'Check-in date (YYYY-MM-DD)')
   .requiredOption('--checkout <date>', 'Check-out date (YYYY-MM-DD)')
+  .option('--ref <refId>', 'Explicit reference ID (e.g. CND-4821)')
   .option('--email <email>', 'Primary guest email')
   .option('--phone <phone>', 'Primary guest mobile number')
   .option('--guests <number>', 'Number of guests', '2')
   .option('--channel <channel>', 'Channel (direct, airbnb, agoda)', 'direct')
   .option('--parking', 'Include covered parking slot')
   .option('--plate <plate>', 'Vehicle plate number for covered parking')
+  .option('--test-mode', 'Execute in isolated test mode (auto-prefixed TEST-XXXX, is_test=1)')
+  .option('--live-gcal', 'When in test-mode, also create [TEST] event on live Google Calendar')
   .option('--json', 'Output raw JSON envelope')
   .action(async (opts) => {
     const res = await client.createReservation({
+      refId: opts.ref,
       guestName: opts.name,
       guestEmail: opts.email,
       guestPhone: opts.phone,
@@ -95,12 +100,82 @@ program
       guests: parseInt(opts.guests, 10),
       channel: opts.channel,
       coveredParking: !!opts.parking,
-      plateNumber: opts.plate
+      plateNumber: opts.plate,
+      testMode: !!opts.testMode,
+      liveGcal: !!opts.liveGcal
     });
     handleOutput(res, opts.json);
   });
 
-// 4. Endorse
+// 4. List (CRUD - Read Multi)
+program
+  .command('list')
+  .description('List reservations from operations ledger')
+  .option('--from <date>', 'Filter check-outs after date (YYYY-MM-DD)')
+  .option('--to <date>', 'Filter check-ins before date (YYYY-MM-DD)')
+  .option('--include-cancelled', 'Include cancelled reservations')
+  .option('--include-test', 'Include sandbox test reservations (is_test=1)')
+  .option('--json', 'Output raw JSON envelope')
+  .action(async (opts) => {
+    const res = await client.listReservations({
+      from: opts.from,
+      to: opts.to,
+      includeCancelled: !!opts.includeCancelled,
+      includeTest: !!opts.includeTest
+    });
+    handleOutput(res, opts.json);
+  });
+
+// 5. Get (CRUD - Read Single)
+program
+  .command('get')
+  .description('Get single reservation by reference ID')
+  .requiredOption('--ref <refId>', 'Reservation reference ID (e.g. CND-4821)')
+  .option('--json', 'Output raw JSON envelope')
+  .action(async (opts) => {
+    const res = await client.getReservation(opts.ref);
+    handleOutput(res, opts.json);
+  });
+
+// 6. Update (CRUD - Update)
+program
+  .command('update')
+  .description('Update/reschedule a reservation on Google Calendar & SQLite')
+  .requiredOption('--ref <refId>', 'Reservation reference ID')
+  .option('--name <guestName>', 'Updated guest name')
+  .option('--checkin <date>', 'Updated check-in date (YYYY-MM-DD)')
+  .option('--checkout <date>', 'Updated check-out date (YYYY-MM-DD)')
+  .option('--guests <number>', 'Updated guest count')
+  .option('--parking', 'Add covered parking')
+  .option('--no-parking', 'Remove covered parking')
+  .option('--plate <plate>', 'Updated plate number')
+  .option('--json', 'Output raw JSON envelope')
+  .action(async (opts) => {
+    const patch = {};
+    if (opts.name) patch.guestName = opts.name;
+    if (opts.checkin) patch.checkIn = opts.checkin;
+    if (opts.checkout) patch.checkOut = opts.checkout;
+    if (opts.guests) patch.guests = parseInt(opts.guests, 10);
+    if (opts.parking !== undefined) patch.coveredParking = opts.parking;
+    if (opts.plate) patch.plateNumber = opts.plate;
+
+    const res = await client.updateReservation(opts.ref, patch);
+    handleOutput(res, opts.json);
+  });
+
+// 7. Cancel (CRUD - Delete)
+program
+  .command('cancel')
+  .description('Cancel reservation: remove from Google Calendar and soft-cancel in SQLite')
+  .requiredOption('--ref <refId>', 'Reservation reference ID')
+  .option('--reason <reason>', 'Cancellation reason')
+  .option('--json', 'Output raw JSON envelope')
+  .action(async (opts) => {
+    const res = await client.cancelReservation(opts.ref, { reason: opts.reason });
+    handleOutput(res, opts.json);
+  });
+
+// 8. Endorse
 program
   .command('endorse')
   .description('Update Serin East building admin endorsement clearance')
@@ -116,7 +191,7 @@ program
     handleOutput(res, opts.json);
   });
 
-// 5. Deposit
+// 9. Deposit
 program
   .command('deposit')
   .description('Manage refundable security deposit (collect, refund, deduct)')
@@ -134,7 +209,7 @@ program
     handleOutput(res, opts.json);
   });
 
-// 6. Turnover
+// 10. Turnover
 program
   .command('turnover')
   .description('Update caretaker cleaning and pre-arrival turnover status')
@@ -156,7 +231,7 @@ program
     handleOutput(res, opts.json);
   });
 
-// 7. Lock-Code
+// 11. Lock-Code
 program
   .command('lock-code')
   .description('Evaluate clearance gates and release digital smart lock PIN')
@@ -168,7 +243,7 @@ program
     handleOutput(res, opts.json);
   });
 
-// 8. Expense
+// 12. Expense
 const expenseCmd = program.command('expense').description('Track condo monthly utilities and expenses');
 
 expenseCmd
@@ -199,7 +274,7 @@ expenseCmd
     handleOutput(res, opts.json);
   });
 
-// 9. Sync Backend
+// 13. Sync Backend
 program
   .command('sync')
   .description('Trigger Tri-Way backend synchronization (Calendar <-> Sheets <-> SQLite)')
@@ -216,6 +291,39 @@ program
     proc.on('close', (code) => {
       process.exit(code);
     });
+  });
+
+// 14. Test Booking (End-to-End Test Mode Pipeline)
+const testBookingCmd = program.command('test-booking').description('Zero-risk automated E2E test booking pipeline');
+
+testBookingCmd
+  .command('run')
+  .description('Run full 8-stage test booking pipeline (Quote -> Reserve -> Gate -> Endorse -> Turnover -> Deposit -> Lock -> Cleanup)')
+  .option('--checkin <date>', 'Test check-in date (YYYY-MM-DD)', '2027-01-10')
+  .option('--checkout <date>', 'Test check-out date (YYYY-MM-DD)', '2027-01-12')
+  .option('--channel <channel>', 'Channel (direct, airbnb, agoda)', 'direct')
+  .option('--live-gcal', 'Also create and verify [TEST] event on live Google Calendar')
+  .option('--keep', 'Preserve the test booking record in SQLite (is_test=1) instead of auto-cleaning')
+  .option('--json', 'Output raw JSON envelope')
+  .action(async (opts) => {
+    const res = await client.runTestBookingPipeline({
+      checkIn: opts.checkin,
+      checkOut: opts.checkout,
+      channel: opts.channel,
+      liveGcal: !!opts.liveGcal,
+      keep: !!opts.keep
+    });
+    handleOutput(res, opts.json);
+  });
+
+testBookingCmd
+  .command('cleanup')
+  .description('Purge all sandbox test bookings from SQLite and Google Calendar')
+  .option('--ref <refId>', 'Specific test reference ID to purge (optional)')
+  .option('--json', 'Output raw JSON envelope')
+  .action(async (opts) => {
+    const res = await client.cleanupTestBookings(opts.ref);
+    handleOutput(res, opts.json);
   });
 
 program.parse(process.argv);
