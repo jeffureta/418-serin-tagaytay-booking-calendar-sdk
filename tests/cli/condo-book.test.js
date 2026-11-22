@@ -13,6 +13,10 @@ describe('condo-book CLI Subprocess Verification', () => {
     assert.ok(stdout.includes('availability'));
     assert.ok(stdout.includes('quote'));
     assert.ok(stdout.includes('reserve'));
+    assert.ok(stdout.includes('list'));
+    assert.ok(stdout.includes('get'));
+    assert.ok(stdout.includes('update'));
+    assert.ok(stdout.includes('cancel'));
   });
 
   it('should output quote calculation in JSON envelope with --json', async () => {
@@ -32,6 +36,18 @@ describe('condo-book CLI Subprocess Verification', () => {
     assert.equal(res.data.parkingNights, 2);
     assert.equal(res.data.parkingTotal, 700);
     assert.equal(res.data.securityDeposit, 3000);
+  });
+
+  it('should list reservations in JSON envelope with --json', async () => {
+    const { stdout } = await execFileAsync('node', [
+      CLI_PATH,
+      'list',
+      '--json'
+    ]);
+    const res = JSON.parse(stdout);
+    assert.equal(res.success, true);
+    assert.equal(res.status, 'OK');
+    assert.ok(Array.isArray(res.data.reservations));
   });
 
   it('should support expense add and report in JSON format', async () => {
@@ -61,5 +77,21 @@ describe('condo-book CLI Subprocess Verification', () => {
     const repRes = JSON.parse(repOut);
     assert.equal(repRes.success, true);
     assert.ok(repRes.data.totalAmount >= 2150.75);
+  });
+
+  it('should execute test-booking run in JSON format with all 8 stages passed', async () => {
+    const { stdout } = await execFileAsync('node', [
+      CLI_PATH,
+      'test-booking',
+      'run',
+      '--json'
+    ]);
+
+    const res = JSON.parse(stdout);
+    assert.equal(res.success, true);
+    assert.equal(res.status, 'TEST_PIPELINE_PASSED');
+    assert.equal(res.data.totalStages, 8);
+    assert.equal(res.data.passedStages, 8);
+    assert.ok(res.data.refId.startsWith('TEST-'));
   });
 });

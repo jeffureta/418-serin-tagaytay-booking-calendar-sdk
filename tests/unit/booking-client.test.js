@@ -4,7 +4,7 @@ import { CondoBookingClient } from '../../src/index.js';
 
 describe('CondoBookingClient Core SDK', () => {
   it('should initialize with local mode and return standardized response envelopes', async () => {
-    const client = new CondoBookingClient({ dbPath: ':memory:' });
+    const client = new CondoBookingClient({ dbPath: ':memory:', skipGcal: true });
 
     const quoteRes = await client.calculateQuote({
       checkIn: '2026-12-20',
@@ -24,7 +24,7 @@ describe('CondoBookingClient Core SDK', () => {
   });
 
   it('should create reservation and guard smart lock release', async () => {
-    const client = new CondoBookingClient({ dbPath: ':memory:' });
+    const client = new CondoBookingClient({ dbPath: ':memory:', skipGcal: true });
 
     const createRes = await client.createReservation({
       refId: 'CND-2020',
@@ -74,7 +74,7 @@ describe('CondoBookingClient Core SDK', () => {
   });
 
   it('should query live calendar availability and handle date conflicts', async () => {
-    const client = new CondoBookingClient({ dbPath: ':memory:' });
+    const client = new CondoBookingClient({ dbPath: ':memory:', skipGcal: true });
 
     const avail = await client.getAvailability({
       from: '2026-12-01',
